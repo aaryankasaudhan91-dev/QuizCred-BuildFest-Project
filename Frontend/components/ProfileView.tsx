@@ -1,0 +1,245 @@
+
+import React, { useState, useRef } from 'react';
+import { User, UserRole } from '../types';
+import { generateAvatar } from '../services/geminiService';
+
+interface ProfileViewProps {
+  user: User;
+  onUpdate: (updates: Partial<User>) => void;
+  onBack: () => void;
+}
+
+const resizeImage = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 800;
+        const scale = img.width > MAX_WIDTH ? MAX_WIDTH / img.width : 1;
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            resolve(canvas.toDataURL('image/jpeg', 0.8));
+        } else {
+            resolve(e.target?.result as string);
+        }
+      };
+      img.onerror = reject;
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+};
+
+const ProfileView: React.FC<ProfileViewProps> = ({ user, onUpdate, onBack }) => {
+  const [name, setName] = useState(user?.name || '');
+  const [email, setEmail] = useState(user?.email || '');
+  const [contactNo, setContactNo] = useState(user?.contactNo || '');
+  const [profilePictureUrl, setProfilePictureUrl] = useState(user?.profilePictureUrl);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (contactNo && !/^\d{10}$/.test(contactNo)) {
+      alert("Please enter a valid 10-digit Contact Number.");
+      return;
+    }
+    onUpdate({ name, email, contactNo, profilePictureUrl });
+    alert("Profile updated!");
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      try {
+        const resizedImage = await resizeImage(file);
+        setProfilePictureUrl(resizedImage);
+      } catch (error) {
+        console.error("Error processing image:", error);
+        alert("Failed to upload image. Please try again.");
+      }
+    }
+  };
+
+  const handleGenerateAvatar = async () => {
+    setIsGenerating(true);
+    const generatedUrl = await generateAvatar(name);
+    if (generatedUrl) {
+      setProfilePictureUrl(generatedUrl);
+    } else {
+      alert("Failed to generate avatar. Please try again.");
+    }
+    setIsGenerating(false);
+  };
+
+  return (
+    <div className="max-w-2xl mx-auto pb-12 animate-fade-in-up">
+      <button onClick={onBack} className="mb-6 flex items-center text-slate-500 dark:text-slate-400 font-bold text-sm hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors group">
+        <svg className="w-4 h-4 mr-1 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
+        Back to Dashboard
+      </button>
+      
+      <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-3xl rounded-[2.5rem] shadow-[0_20px_50px_-15px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_50px_-15px_rgba(0,0,0,0.5)] overflow-hidden border border-white/50 dark:border-white/10 group/card perspective-[2000px]">
+        <div className="relative h-64 bg-gradient-to-br from-emerald-600 via-teal-500 to-blue-600 dark:from-emerald-900 dark:via-teal-950 dark:to-blue-900 transform-gpu group-hover/card:scale-[1.01] transition-transform duration-700 ease-out">
+            {/* Glossy Overlay */}
+            <div className="absolute inset-0 bg-white/5 opacity-40 mix-blend-overlay pointer-events-none"></div>
+            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 dark:opacity-20 mix-blend-overlay"></div>
+            
+            <div className="absolute -bottom-16 left-8 group/avatar z-10">
+                <div className="w-32 h-32 bg-white/30 dark:bg-slate-900/40 backdrop-blur-2xl rounded-[2.2rem] p-1.5 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.4)] border border-white/40 dark:border-white/10 relative overflow-hidden transform group-hover/avatar:scale-[1.05] transition-transform duration-500 ring-4 ring-white/10">
+                    {profilePictureUrl ? (
+                      <img src={profilePictureUrl} alt="Profile" className="w-full h-full object-cover rounded-[1.5rem]" />
+                    ) : (
+                      <div className="w-full h-full bg-slate-100 dark:bg-slate-800 rounded-[1.5rem] flex items-center justify-center text-4xl font-black text-emerald-600 dark:text-emerald-400">
+                          {name.charAt(0)}
+                      </div>
+                    )}
+                    
+                    {/* Hover Overlay for quick edit hint */}
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity cursor-pointer rounded-[1.5rem]" onClick={() => fileInputRef.current?.click()}>
+                        <svg className="w-8 h-8 text-slate-900 dark:text-white drop-shadow-md" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                    </div>
+                </div>
+            </div>
+            
+            {/* Rating Stat (For Volunteers AND Requesters) */}
+            {(user?.role === UserRole.VOLUNTEER || user?.role === UserRole.REQUESTER) && (
+                <div className="absolute top-8 right-8 bg-black/30 backdrop-blur-xl rounded-2xl p-4 flex gap-5 text-white border border-white/20 shadow-2xl transform translate-y-2 group-hover/card:translate-y-0 opacity-0 group-hover/card:opacity-100 transition-all duration-500">
+                    <div className="text-center">
+                        <div className="flex items-baseline justify-center gap-1.5 font-black text-2xl drop-shadow-[0_0_15px_rgba(250,204,21,0.6)]">
+                            {user.averageRating ? user.averageRating.toFixed(1) : '0.0'}
+                            <svg className="w-5 h-5 text-yellow-400 filter" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                        </div>
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/70 mt-1 block">Rating</span>
+                    </div>
+                </div>
+            )}
+
+            {/* Impact Score (Only for Donors) */}
+            {user?.role === UserRole.DONOR && (
+                <div className="absolute top-8 right-8 bg-black/40 backdrop-blur-2xl rounded-[1.5rem] p-5 flex flex-col items-center justify-center min-w-[120px] text-white border border-white/20 shadow-[0_20px_40px_-5px_rgba(16,185,129,0.3)] transform translate-y-3 group-hover/card:translate-y-0 opacity-0 group-hover/card:opacity-100 transition-all duration-700 delay-100 ring-1 ring-white/10">
+                    <div className="flex items-center justify-center gap-2 mb-1.5">
+                        <span className="text-3xl font-black font-mono tracking-tighter text-emerald-400 drop-shadow-[0_0_12px_rgba(52,211,153,0.6)]">
+                            {user.impactScore || 0}
+                        </span>
+                        <div className="w-6 h-6 bg-emerald-500/20 rounded-full flex items-center justify-center ring-1 ring-emerald-500/40">
+                            <svg className="w-3.5 h-3.5 text-emerald-400 animate-pulse" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" /></svg>
+                        </div>
+                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-[0.25em] text-emerald-100/60 leading-none">Lives Touched</span>
+                </div>
+            )}
+        </div>
+        
+        <div className="pt-28 px-8 pb-10">
+            <div className="flex justify-between items-start mb-10">
+                <div>
+                    <h2 className="text-4xl font-black text-slate-900 dark:text-white mb-2 tracking-tight drop-shadow-sm">{name || 'Your Name'}</h2>
+                    <p className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-3 py-1.5 rounded-xl border border-emerald-500/20 glow glow-emerald-500/20">
+                        {user?.role} Account
+                    </p>
+                </div>
+                
+                {/* Additional Stats / Reviews / Badges could go here */}
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-6">
+              
+              {/* Profile Picture Controls */}
+              <div className="flex flex-col sm:flex-row gap-4 items-center bg-slate-50/50 dark:bg-slate-800/30 p-5 rounded-[2rem] border border-slate-200/50 dark:border-slate-700/50 backdrop-blur-md shadow-inner">
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  className="hidden" 
+                  accept="image/*" 
+                  onChange={handleFileUpload} 
+                />
+                <button 
+                  type="button" 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex-1 w-full sm:w-auto py-3 bg-white/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-2xl text-[11px] font-black tracking-widest uppercase text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all shadow-sm hover:-translate-y-0.5"
+                >
+                  Upload Photo
+                </button>
+                <div className="text-[10px] text-slate-500 dark:text-slate-400 font-black uppercase tracking-widest opacity-60">OR</div>
+                <button 
+                  type="button" 
+                  onClick={handleGenerateAvatar}
+                  disabled={isGenerating}
+                  className="flex-1 w-full sm:w-auto py-3 bg-gradient-to-r from-purple-500 to-indigo-600 text-slate-900 dark:text-white rounded-2xl text-[11px] font-black tracking-widest uppercase hover:shadow-[0_10px_20px_-10px_rgba(99,102,241,0.6)] hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:hover:translate-y-0"
+                >
+                  {isGenerating ? (
+                    <>
+                      <svg className="animate-spin h-3.5 w-3.5 text-slate-900 dark:text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Creating Magic...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                      Generate AI Avatar
+                    </>
+                  )}
+                </button>
+              </div>
+
+              <div className="space-y-2 group">
+                 <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-2 group-focus-within:text-emerald-500 transition-colors">Full Name</label>
+                 <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none text-slate-500 dark:text-slate-400 group-focus-within:text-emerald-500 transition-colors">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                    </div>
+                    <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full pl-12 pr-5 py-4 border border-slate-200/60 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-800/40 rounded-2xl font-bold text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/10 focus:bg-white dark:focus:bg-slate-900 transition-all shadow-inner" placeholder="E.g., John Doe" />
+                 </div>
+              </div>
+              <div className="space-y-2 group">
+                 <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-2 group-focus-within:text-emerald-500 transition-colors">Email Address</label>
+                 <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none text-slate-500 dark:text-slate-400 group-focus-within:text-emerald-500 transition-colors">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                    </div>
+                    <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full pl-12 pr-5 py-4 border border-slate-200/60 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-800/40 rounded-2xl font-bold text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/10 focus:bg-white dark:focus:bg-slate-900 transition-all shadow-inner" placeholder="name@example.com" />
+                 </div>
+              </div>
+              <div className="space-y-2 group">
+                 <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-2 group-focus-within:text-emerald-500 transition-colors">Contact Number</label>
+                 <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none z-10 text-slate-500 dark:text-slate-400 group-focus-within:text-emerald-500 transition-colors">
+                        <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+                        <span className="font-bold text-sm border-r border-slate-300 dark:border-slate-700 pr-3">+91</span>
+                    </div>
+                    <input 
+                        type="tel" 
+                        maxLength={10}
+                        value={contactNo} 
+                        onChange={e => {
+                            const val = e.target.value.replace(/\D/g, '');
+                            if(val.length <= 10) setContactNo(val);
+                        }}
+                        className="w-full pl-28 pr-5 py-4 border border-slate-200/60 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-800/40 rounded-2xl font-bold text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/10 focus:bg-white dark:focus:bg-slate-900 transition-all shadow-inner relative" 
+                        placeholder="9998887770"
+                    />
+                 </div>
+              </div>
+
+              <div className="pt-6">
+                  <button type="submit" className="w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-black py-4 rounded-2xl uppercase tracking-[0.2em] text-[11px] shadow-[0_10px_20px_-10px_rgba(0,0,0,0.5)] dark:shadow-[0_10px_20px_-10px_rgba(255,255,255,0.3)] hover:-translate-y-1 hover:shadow-xl active:scale-95 transition-all">
+                    Save Digital ID
+                  </button>
+              </div>
+            </form>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ProfileView;
