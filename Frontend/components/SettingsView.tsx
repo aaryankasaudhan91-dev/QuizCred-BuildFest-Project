@@ -96,14 +96,14 @@ const SettingsView: React.FC<SettingsViewProps> = ({ user, onUpdate, onDelete, o
 
                 {/* Creators Link */}
                 {onAboutClick && (
-                    <div onClick={onAboutClick} className="bg-gradient-to-br from-slate-800 to-slate-900 dark:from-black dark:to-slate-900 rounded-[2rem] shadow-[0_10px_30px_-10px_rgba(0,0,0,0.3)] border border-slate-200/50 dark:border-slate-700/50 p-6 text-slate-900 dark:text-white cursor-pointer hover:scale-[1.02] transition-all flex flex-col justify-between h-36 relative overflow-hidden group/team">
+                    <div onClick={onAboutClick} className="bg-gradient-to-br from-slate-800 to-slate-900 dark:from-white dark:to-slate-900 rounded-[2rem] shadow-[0_10px_30px_-10px_rgba(0,0,0,0.3)] border border-slate-200/50 dark:border-slate-700/50 p-6 text-slate-900 dark:text-white cursor-pointer hover:scale-[1.02] transition-all flex flex-col justify-between h-36 relative overflow-hidden group/team">
                         <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-500/20 rounded-full blur-3xl -mr-10 -mt-10"></div>
                         <div className="flex justify-between items-start relative z-10">
                             <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-xl border border-slate-200 dark:border-white/10 text-2xl shadow-inner group-hover/team:scale-110 transition-transform">👨‍💻</div>
                             <svg className="w-5 h-5 text-slate-900 dark:text-white/50 group-hover/team:translate-x-1 transition-transform group-hover/team:text-slate-900 dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
                         </div>
                         <div className="relative z-10">
-                            <h3 className="text-xl font-White tracking-tight drop-shadow-md">The Creators</h3>
+                            <h3 className="text-xl font-black tracking-tight drop-shadow-md dark:text-white">The Creators</h3>
                             <p className="text-slate-600 dark:text-slate-300 text-xs font-bold opacity-80 mt-1">Meet the visionaries</p>
                         </div>
                     </div>
