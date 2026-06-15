@@ -142,7 +142,7 @@ MK2(included mobile view)/
 
 ```bash
 # Navigate to the frontend folder (backend scripts run from here)
-cd Backend
+cd backend
 
 # Install dependencies
 npm install
